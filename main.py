@@ -6,7 +6,7 @@ import os
 
 os.environ['TOKEN']
 
-TOKEN = '8077555879:AAE4v5axsvqUlt7og_5vVMY9QjwpfBpErBo'
+TOKEN = '<token goes here>'
 bot = telebot.TeleBot(TOKEN)
 
 user_states = {}  # тут будем хранить информацию о действиях пользователя
