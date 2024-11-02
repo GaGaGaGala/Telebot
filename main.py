@@ -1,5 +1,5 @@
 import telebot
-from PIL import Image
+from PIL import Image, ImageGrab, ImageOps
 import io
 from telebot import types
 import os
@@ -71,6 +71,10 @@ def pixelate_image(image, pixel_size):
     return image
 
 
+def invert_colors(image):
+    return ImageOps.invert(image)
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message, "Send me an image, and I'll provide options for you!")
@@ -87,7 +91,8 @@ def get_options_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
-    keyboard.add(pixelate_btn, ascii_btn)
+    invert_btn = types.InlineKeyboardButton("Invert_colors", callback_data="invert")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn)
     return keyboard
 
 
@@ -95,9 +100,15 @@ def get_options_keyboard():
 def callback_query(call):
     chat_id = call.message.chat.id
     if call.data == "pixelate":
+        user_states[chat_id]['level'] = 1
         bot.answer_callback_query(call.id, "Pixelating your image...")
         pixelate_and_send(call.message)
+    elif call.data == "invert":
+        user_states[chat_id]['level'] = 2
+        bot.answer_callback_query(call.id, "Inversion your image...")
+        pixelate_and_send(call.message)
     elif call.data == "ascii":
+        user_states[chat_id]['level'] = 3
         user_states[chat_id]['ascii'] = True
         bot.reply_to(call.message, "Enter char for converting your image to ASCII art...")
         #bot.answer_callback_query(call.id, "Converting your image to ASCII art...")
@@ -111,8 +122,10 @@ def pixelate_and_send(message):
 
     image_stream = io.BytesIO(downloaded_file)
     image = Image.open(image_stream)
-    pixelated = pixelate_image(image, 20)
-
+    if user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 1:
+        pixelated = pixelate_image(image, 20)
+    elif user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 2:
+        pixelated = invert_colors(image)
     output_stream = io.BytesIO()
     pixelated.save(output_stream, format="JPEG")
     output_stream.seek(0)
@@ -126,7 +139,8 @@ def ascii_and_send(message):
 
     image_stream = io.BytesIO(downloaded_file)
     ascii_art = image_to_ascii(image_stream)
-    bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
+    if user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 3:
+        bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
 
 
 @bot.message_handler(func=lambda message: True)
@@ -135,7 +149,6 @@ def handle_message(message):
         global ASCII_CHARS
         ASCII_CHARS = message.text
         ascii_and_send(message)
-        user_states[message.chat.id]['ascii'] = False
-        user_states[message.chat.id] = None
+
 
 bot.polling(none_stop=True)
