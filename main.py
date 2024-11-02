@@ -150,5 +150,8 @@ def handle_message(message):
         ASCII_CHARS = message.text
         ascii_and_send(message)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> d95b854737506a089ac5ca48534297b2f6d238d5
 bot.polling(none_stop=True)
