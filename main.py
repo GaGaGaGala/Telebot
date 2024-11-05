@@ -72,8 +72,12 @@ def pixelate_image(image, pixel_size):
 
 
 def invert_colors(image):
+    """Функция меняет цвет изображения на противоположный."""
     return ImageOps.invert(image)
 
+def mirror_image(image):
+    """Создаёт зеркально-отражённое изображение по горизонтали."""
+    return ImageOps.mirror(image)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -92,7 +96,8 @@ def get_options_keyboard():
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
     invert_btn = types.InlineKeyboardButton("Invert_colors", callback_data="invert")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn)
+    mirror_btn = types.InlineKeyboardButton("Mirror_image", callback_data="mirror")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_btn)
     return keyboard
 
 
@@ -106,6 +111,10 @@ def callback_query(call):
     elif call.data == "invert":
         user_states[chat_id]['level'] = 2
         bot.answer_callback_query(call.id, "Inversion your image...")
+        pixelate_and_send(call.message)
+    elif call.data == "mirror":
+        user_states[chat_id]['level'] = 4
+        bot.answer_callback_query(call.id, "Mirroring your image...")
         pixelate_and_send(call.message)
     elif call.data == "ascii":
         user_states[chat_id]['level'] = 3
@@ -126,6 +135,8 @@ def pixelate_and_send(message):
         pixelated = pixelate_image(image, 20)
     elif user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 2:
         pixelated = invert_colors(image)
+    elif user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 4:
+        pixelated = mirror_image(image)
     output_stream = io.BytesIO()
     pixelated.save(output_stream, format="JPEG")
     output_stream.seek(0)
