@@ -1,10 +1,8 @@
 import telebot
-from PIL import Image, ImageGrab, ImageOps
+from PIL import Image, ImageOps
 import io
 from telebot import types
-import os
 
-os.environ['TOKEN']
 
 TOKEN = '<token goes here>'
 bot = telebot.TeleBot(TOKEN)
@@ -16,6 +14,7 @@ ASCII_CHARS = '@%#*+=-:. '
 
 
 def resize_image(image, new_width=100):
+    """ Изменяет размер изображения с сохранением пропорций."""
     width, height = image.size
     ratio = height / width
     new_height = int(new_width * ratio)
@@ -23,10 +22,13 @@ def resize_image(image, new_width=100):
 
 
 def grayify(image):
+    """Преобразует цветное изображение в оттенки серого."""
     return image.convert("L")
 
 
 def image_to_ascii(image_stream, new_width=40):
+    """ Основная функция для преобразования изображения в ASCII-арт. Изменяет размер, преобразует в градации
+    серого и затем в строку ASCII-символов."""
     # Переводим в оттенки серого
     image = Image.open(image_stream).convert('L')
 
@@ -51,6 +53,8 @@ def image_to_ascii(image_stream, new_width=40):
 
 
 def pixels_to_ascii(image):
+    """ Конвертирует пиксели изображения в градациях серого в строку ASCII-символов, используя
+     предопределенную строку ASCII_CHARS."""
     pixels = image.getdata()
     characters = ""
     for pixel in pixels:
@@ -60,6 +64,8 @@ def pixels_to_ascii(image):
 
 # Огрубляем изображение
 def pixelate_image(image, pixel_size):
+    """Принимает изображение и размер пикселя. Уменьшает изображение до размера, где один пиксель представляет большую
+     область, затем увеличивает обратно, создавая пиксельный эффект."""
     image = image.resize(
         (image.size[0] // pixel_size, image.size[1] // pixel_size),
         Image.NEAREST
@@ -75,15 +81,25 @@ def invert_colors(image):
     """Функция меняет цвет изображения на противоположный."""
     return ImageOps.invert(image)
 
+
 def mirror_image(image):
     """Создаёт зеркально-отражённое изображение по горизонтали."""
     return ImageOps.mirror(image)
 
+
+def convert_to_heatmap(image):
+    """Преобразует изображение в тепловую карту."""
+    image = image.convert("L")
+    return ImageOps.colorize(image, (0, 0, 255), (255, 0, 0))
+
+
+"""Обработчик сообщений реагирует на команды /start и /help, отправляя приветственное сообщение."""
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message, "Send me an image, and I'll provide options for you!")
 
 
+"""Обработчик, реагирует на изображения, отправляемые пользователем, и предлагает варианты обработки."""
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
     bot.reply_to(message, "I got your photo! Please choose what you'd like to do with it.",
@@ -92,15 +108,18 @@ def handle_photo(message):
 
 
 def get_options_keyboard():
+    """Клавиатура для взаимодействия:"""
     keyboard = types.InlineKeyboardMarkup()
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
     invert_btn = types.InlineKeyboardButton("Invert_colors", callback_data="invert")
     mirror_btn = types.InlineKeyboardButton("Mirror_image", callback_data="mirror")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_btn)
+    heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_btn, heatmap_btn)
     return keyboard
 
 
+"""Обработчик определяет действия в ответ на выбор пользователя. """
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
@@ -116,6 +135,10 @@ def callback_query(call):
         user_states[chat_id]['level'] = 4
         bot.answer_callback_query(call.id, "Mirroring your image...")
         pixelate_and_send(call.message)
+    elif call.data == "heatmap":
+        user_states[chat_id]['level'] = 5
+        bot.answer_callback_query(call.id, "Conversion to a heat map your image...")
+        pixelate_and_send(call.message)
     elif call.data == "ascii":
         user_states[chat_id]['level'] = 3
         user_states[chat_id]['ascii'] = True
@@ -125,6 +148,7 @@ def callback_query(call):
 
 
 def pixelate_and_send(message):
+    """Пикселизирует изображение и отправляет его обратно пользователю."""
     photo_id = user_states[message.chat.id]['photo']
     file_info = bot.get_file(photo_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -137,6 +161,8 @@ def pixelate_and_send(message):
         pixelated = invert_colors(image)
     elif user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 4:
         pixelated = mirror_image(image)
+    elif user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 5:
+        pixelated = convert_to_heatmap(image)
     output_stream = io.BytesIO()
     pixelated.save(output_stream, format="JPEG")
     output_stream.seek(0)
@@ -144,6 +170,7 @@ def pixelate_and_send(message):
 
 
 def ascii_and_send(message):
+    """Преобразует изображение в ASCII-арт и отправляет результат в виде текстового сообщения."""
     photo_id = user_states[message.chat.id]['photo']
     file_info = bot.get_file(photo_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -154,6 +181,7 @@ def ascii_and_send(message):
         bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
 
 
+"""Обработка сообщений, вызов функции ascii_and_send."""
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     if user_states.get(message.chat.id) and user_states[message.chat.id]['ascii']:
@@ -162,4 +190,5 @@ def handle_message(message):
         ascii_and_send(message)
 
 
+"""Бесконечный цыкл бота"""
 bot.polling(none_stop=True)
