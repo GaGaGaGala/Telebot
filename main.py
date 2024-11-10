@@ -93,6 +93,16 @@ def convert_to_heatmap(image):
     return ImageOps.colorize(image, (0, 0, 255), (255, 0, 0))
 
 
+def resize_for_sticker(image, new_width=60):
+    """ Изменяет размер изображения для использования в качестве стикера в Telegram, ограничивая максимальный размер."""
+    width, height = image.size
+    ratio = height / width
+    new_height = int(new_width * ratio)
+    new_image = image.resize((new_width, new_height))
+    new_image.show()
+    return new_image
+
+
 """Обработчик сообщений реагирует на команды /start и /help, отправляя приветственное сообщение."""
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -115,7 +125,8 @@ def get_options_keyboard():
     invert_btn = types.InlineKeyboardButton("Invert_colors", callback_data="invert")
     mirror_btn = types.InlineKeyboardButton("Mirror_image", callback_data="mirror")
     heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
-    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_btn, heatmap_btn)
+    resize_btn = types.InlineKeyboardButton("Resize_for_sticker", callback_data="resize")
+    keyboard.add(pixelate_btn, ascii_btn, invert_btn, mirror_btn, heatmap_btn, resize_btn)
     return keyboard
 
 
@@ -139,12 +150,14 @@ def callback_query(call):
         user_states[chat_id]['level'] = 5
         bot.answer_callback_query(call.id, "Conversion to a heat map your image...")
         pixelate_and_send(call.message)
+    elif call.data == "resize":
+        user_states[chat_id]['level'] = 6
+        bot.answer_callback_query(call.id, "Changing the size your image...")
+        pixelate_and_send(call.message)
     elif call.data == "ascii":
         user_states[chat_id]['level'] = 3
         user_states[chat_id]['ascii'] = True
         bot.reply_to(call.message, "Enter char for converting your image to ASCII art...")
-        #bot.answer_callback_query(call.id, "Converting your image to ASCII art...")
-        #ascii_and_send(call.message)
 
 
 def pixelate_and_send(message):
@@ -163,6 +176,8 @@ def pixelate_and_send(message):
         pixelated = mirror_image(image)
     elif user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 5:
         pixelated = convert_to_heatmap(image)
+    elif user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 6:
+        pixelated = resize_for_sticker(image)
     output_stream = io.BytesIO()
     pixelated.save(output_stream, format="JPEG")
     output_stream.seek(0)
