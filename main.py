@@ -3,7 +3,7 @@ from PIL import Image, ImageOps
 import io
 from telebot import types
 from list_jokes import Jokes
-import random
+
 
 TOKEN = '<token goes here>'
 bot = telebot.TeleBot(TOKEN)
@@ -12,7 +12,7 @@ user_states = {}  # тут будем хранить информацию о д�
 
 # набор символов из которых составляем изображение
 ASCII_CHARS = '@%#*+=-:. '
-jokes = Jokes()
+jokes = Jokes() # объект класса Jokes
 
 def resize_image(image, new_width=100):
     """ Изменяет размер изображения с сохранением пропорций."""
@@ -114,15 +114,12 @@ def send_welcome(message):
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
     user_states[message.chat.id] = {'level': 0}
-    bot.send_message(message.chat.id, jokes.get_joke())#(user_states[message.chat.id]['level']))
+    bot.send_message(message.chat.id, jokes.get_joke()) # вставляем шутку
     bot.reply_to(message, "I got your photo! Please choose what you'd like to do with it.",
                  reply_markup=get_options_keyboard())
     user_states[message.chat.id] = {'photo': message.photo[-1].file_id}
 
 
-# @bot.message_handler(commands=['Random Joke'])
-# def send_joke(message):
-#     bot.reply_to(message, random.choice(Jokes))
 def get_options_keyboard():
     """Клавиатура для взаимодействия:"""
     keyboard = types.InlineKeyboardMarkup()
@@ -142,12 +139,12 @@ def callback_query(call):
     chat_id = call.message.chat.id
     if call.data == "pixelate":
         user_states[chat_id]['level'] = 1
-        bot.send_message(chat_id, jokes.get_joke())#(user_states[chat_id]['level']))
+        bot.send_message(chat_id, jokes.get_joke())# шутка
         bot.answer_callback_query(call.id, "Pixelating your image...")
         pixelate_and_send(call.message)
     elif call.data == "invert":
         user_states[chat_id]['level'] = 2
-        bot.send_message(chat_id, jokes.get_joke())#(user_states[chat_id]['level']))
+        bot.send_message(chat_id, jokes.get_joke())#шутка
         bot.answer_callback_query(call.id, "Inversion your image...")
         pixelate_and_send(call.message)
     elif call.data == "mirror":
@@ -157,17 +154,17 @@ def callback_query(call):
         pixelate_and_send(call.message)
     elif call.data == "heatmap":
         user_states[chat_id]['level'] = 5
-        bot.send_message(chat_id, jokes.get_joke())
+        bot.send_message(chat_id, jokes.get_joke())# ещё шутка
         bot.answer_callback_query(call.id, "Conversion to a heat map your image...")
         pixelate_and_send(call.message)
     elif call.data == "resize":
         user_states[chat_id]['level'] = 6
-        bot.send_message(chat_id, jokes.get_joke())
+        bot.send_message(chat_id, jokes.get_joke()) # ещё одна случайная шутка
         bot.answer_callback_query(call.id, "Changing the size your image...")
         pixelate_and_send(call.message)
     elif call.data == "ascii":
         user_states[chat_id]['level'] = 3
-        bot.send_message(chat_id, jokes.get_joke())
+        bot.send_message(chat_id, jokes.get_joke()) # и опять шутка
         user_states[chat_id]['ascii'] = True
         bot.reply_to(call.message, "Enter char for converting your image to ASCII art...")
 
