@@ -66,3 +66,6 @@ pixels_to_ascii(image):
 
 В list_jokes.py добавлен класс Jokes для работы с шутками:
 - def get_joke(self): Выбирает случайную шутку из списка и бот её посылает на каждое действие с фото (для всех 6 статусов).
+
+list_compliments.py содержит класс RandomCompliments для работы с комплиментами:
+- def get_compliment(self): Выбирает случайный комплимент и на команду  /random_compliment - отправляет его пользователю.

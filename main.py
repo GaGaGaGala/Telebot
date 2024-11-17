@@ -3,9 +3,10 @@ from PIL import Image, ImageOps
 import io
 from telebot import types
 from list_jokes import Jokes
+from list_compliments import RandomCompliments
 
 
-TOKEN = '<token goes here>'
+TOKEN = '8077555879:AAE4v5axsvqUlt7og_5vVMY9QjwpfBpErBo'#'<token goes here>'
 bot = telebot.TeleBot(TOKEN)
 
 user_states = {}  # тут будем хранить информацию о действиях пользователя
@@ -13,7 +14,7 @@ user_states = {}  # тут будем хранить информацию о д�
 # набор символов из которых составляем изображение
 ASCII_CHARS = '@%#*+=-:. '
 jokes = Jokes() # объект класса Jokes
-
+compl = RandomCompliments() # объект класса
 def resize_image(image, new_width=100):
     """ Изменяет размер изображения с сохранением пропорций."""
     width, height = image.size
@@ -104,10 +105,16 @@ def resize_for_sticker(image, new_width=60):
     return new_image
 
 
-"""Обработчик сообщений реагирует на команды /start и /help, отправляя приветственное сообщение."""
+""" Обработчик сообщений реагирует на команды /start и /help, отправляя приветственное сообщение."""
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message, "Send me an image, and I'll provide options for you!")
+
+
+"""Обработчик сообщений реагирует на команду /random_compliment, отправляя случайный комплимент."""
+@bot.message_handler(commands=['random_compliment'])
+def send_welcome(message):
+    bot.reply_to(message, compl.get_compliment())
 
 
 """Обработчик, реагирует на изображения, отправляемые пользователем, и предлагает варианты обработки."""
@@ -208,7 +215,8 @@ def ascii_and_send(message):
 """Обработка сообщений, вызов функции ascii_and_send."""
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    if user_states.get(message.chat.id) and user_states[message.chat.id]['ascii']:
+    if user_states.get(message.chat.id) and user_states[message.chat.id]['level'] == 3:#['ascii']:
+        #bot.delete_message(message.chat.id, user_states[message.chat.id]['message_id'] + 1)
         global ASCII_CHARS
         ASCII_CHARS = message.text
         ascii_and_send(message)
