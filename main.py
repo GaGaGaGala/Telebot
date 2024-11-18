@@ -3,10 +3,10 @@ from PIL import Image, ImageOps
 import io
 from telebot import types
 from list_jokes import Jokes
-from list_compliments import RandomCompliments
+from list_compliments import RandomCompliments, flip_a_coin
 
 
-TOKEN = '8077555879:AAE4v5axsvqUlt7og_5vVMY9QjwpfBpErBo'#'<token goes here>'
+TOKEN = '<token goes here>'
 bot = telebot.TeleBot(TOKEN)
 
 user_states = {}  # тут будем хранить информацию о действиях пользователя
@@ -15,6 +15,8 @@ user_states = {}  # тут будем хранить информацию о д�
 ASCII_CHARS = '@%#*+=-:. '
 jokes = Jokes() # объект класса Jokes
 compl = RandomCompliments() # объект класса
+photos = []
+
 def resize_image(image, new_width=100):
     """ Изменяет размер изображения с сохранением пропорций."""
     width, height = image.size
@@ -115,6 +117,13 @@ def send_welcome(message):
 @bot.message_handler(commands=['random_compliment'])
 def send_welcome(message):
     bot.reply_to(message, compl.get_compliment())
+
+
+"""Обработчик реагирует на команду /Flip_Coin , сообщает ,что подбрасывает монетку и выбирает:'Орёл' или 'Решку'."""
+@bot.message_handler(commands=['Flip_Coin'])
+def send_flip_coin(message):
+    bot.reply_to(message, "Flip a Coin!")
+    bot.send_message(message.chat.id, flip_a_coin())
 
 
 """Обработчик, реагирует на изображения, отправляемые пользователем, и предлагает варианты обработки."""

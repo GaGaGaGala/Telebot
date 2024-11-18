@@ -18,4 +18,9 @@ class RandomCompliments:
     def get_compliment(self):
         return random.choice(self.compliments)
 
+
 compl = RandomCompliments()
+
+
+def flip_a_coin():
+    return random.choice(['Heads', 'Tails'])
